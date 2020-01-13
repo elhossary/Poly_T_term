@@ -8,9 +8,10 @@ import glob
 def main():
     # Params
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fasta_in", required=True, help="", type=str)
-    parser.add_argument("--wigs_in", required=True, help="", type=str)
-    parser.add_argument("--gff_out", required=True, help="", type=str)
+    parser.add_argument("--fasta_in", required=True, help="RefSeq fasta file", type=str)
+    parser.add_argument("--wigs_in", required=True,
+                        help="Coverage wiggle file(s), Must contain forward and reverse files", type=str)
+    parser.add_argument("--gff_out", required=True, help="GFF output file name for terminators", type=str)
     parser.add_argument("--pre_signal_offset", required=True, help="", type=int)
     parser.add_argument("--post_signal_offset", required=True, help="", type=int)
     parser.add_argument("--min_coverage", required=True, help="", type=float)
