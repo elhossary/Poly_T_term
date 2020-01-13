@@ -10,7 +10,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--fasta_in", required=True, help="", type=str)
     parser.add_argument("--wigs_in", required=True, help="", type=str)
-    #parser.add_argument("--r_wig_in", required=True, help="", type=str)
     parser.add_argument("--gff_out", required=True, help="", type=str)
     parser.add_argument("--pre_signal_offset", required=True, help="", type=int)
     parser.add_argument("--post_signal_offset", required=True, help="", type=int)
@@ -33,7 +32,6 @@ def main():
     for seq_record in fasta_parsed:
         f_wigs_parsed[seq_record.id] = pd.DataFrame(data=range(1, len(seq_record.seq), 1))
         r_wigs_parsed[seq_record.id] = pd.DataFrame(data=range(1, len(seq_record.seq), 1))
-
     wig_files = glob.glob(args.wigs_in)
     for wig in wig_files:
         x = wp(wig).parse()
@@ -41,22 +39,16 @@ def main():
             if key in r_wigs_parsed.keys():
                 if value[value[1] > 0].empty:
                     r_wigs_parsed[key] = pd.merge(how='outer', left=r_wigs_parsed[key], right=value, left_on=0,
-                                                  right_on=0).fillna(0)
+                                                  right_on=0).fillna(0.0)
                 if value[value[1] < 0].empty:
                     f_wigs_parsed[key] = pd.merge(how='outer', left=f_wigs_parsed[key], right=value, left_on=0,
-                                                  right_on=0).fillna(0)
-
+                                                  right_on=0).fillna(0.0)
     for accession in f_wigs_parsed.keys():
-        for col_name in f_wigs_parsed[accession].columns:
-
-        #f_wigs_parsed[accession].set_index(0, inplace=True)
-
-        f_wigs_parsed[accession][1] = f_wigs_parsed[accession][:].max(axis=1)
-        #f_wigs_parsed[accession] = f_wigs_parsed[accession].iloc[:, [0, 1]]
-        print(f_wigs_parsed[accession].head(10).to_string())
-"""
-    f_wig_parsed = wp(args.f_wig_in).parse()
-    r_wig_parsed = wp(args.r_wig_in).parse()
+        f_wigs_parsed[accession][1] = f_wigs_parsed[accession].iloc[:, 1:-1].max(axis=1)
+        f_wigs_parsed[accession] = f_wigs_parsed[accession].iloc[:, [0, -1]]
+    for accession in r_wigs_parsed.keys():
+        r_wigs_parsed[accession][1] = r_wigs_parsed[accession].iloc[:, 1:-1].min(axis=1)
+        r_wigs_parsed[accession] = r_wigs_parsed[accession].iloc[:, [0, -1]]
 
     accession = ""
     ret_list = []
@@ -65,14 +57,12 @@ def main():
     for seq_record in fasta_parsed:
         f_seq_str = str(seq_record.seq)
         accession = seq_record.id
-        #f_positions, r_positions = group_positions(f_seq_str, args.base, args.max_interruption, args.window_size,
-         #                                          args.tolerance, args.min_len)
-        coverage_percent += (f_wig_parsed[accession].shape[0] + r_wig_parsed[accession].shape[0]) /\
-                            (len(f_seq_str) * 2) * 100
-        f_positions, r_positions = seek_window(f_seq_str, args.window_size, args.tolerance)
+        f_positions, r_positions = group_positions(f_seq_str, args.base, args.max_interruption, args.window_size,
+                                                   args.tolerance, args.min_len)
+        # f_positions, r_positions = seek_window(f_seq_str, args.window_size, args.tolerance)
         counters[f'wig_pos_count_{accession}'] = 0
-        f_wig_df_sliced = f_wig_parsed[accession][f_wig_parsed[accession][1] >= args.min_coverage]
-        r_wig_df_sliced = r_wig_parsed[accession][r_wig_parsed[accession][1] <= args.min_coverage*-1]
+        f_wig_df_sliced = f_wigs_parsed[accession][f_wigs_parsed[accession][1] >= args.min_coverage]
+        r_wig_df_sliced = r_wigs_parsed[accession][r_wigs_parsed[accession][1] <= args.min_coverage*-1]
         counters[f'wig_pos_count_{accession}'] += f_wig_df_sliced.shape[0] + r_wig_df_sliced.shape[0]
 
         for i in f_positions:
@@ -96,7 +86,7 @@ def main():
                 counters[f'f_cov_drop_matches_{accession}'] += 1
                 ret_list.append([accession, position[0], position[1], "+"])
             else:
-                if get_score_of_wig_loc(f_wig_parsed[accession], list(range(position[0], position[1]))):
+                if get_score_of_wig_loc(f_wigs_parsed[accession], list(range(position[0], position[1]))):
                     counters[f'pos_no_match_{accession}'] += 1
                 else:
                     counters[f'pos_not_in_cov_{accession}'] += 1
@@ -105,7 +95,7 @@ def main():
                 counters[f'r_cov_drop_matches_{accession}'] += 1
                 ret_list.append([accession, position[0], position[1], "-"])
             else:
-                if get_score_of_wig_loc(r_wig_parsed[accession], list(range(position[0], position[1]))):
+                if get_score_of_wig_loc(r_wigs_parsed[accession], list(range(position[0], position[1]))):
                     counters[f'pos_no_match_{accession}'] += 1
                 else:
                     counters[f'pos_not_in_cov_{accession}'] += 1
@@ -163,7 +153,6 @@ def main():
     outfile = open(args.gff_out, "w")
     outfile.write(f"###gff-version 3\n{term_gff_str}###")
     outfile.close()
-"""
 
 def drop_invalid_signals(all_signals, window_size, tolerance):
     clean_signals = []
