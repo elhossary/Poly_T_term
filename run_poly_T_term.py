@@ -32,11 +32,10 @@ def main():
     accession = ""
     ret_list = []
     counters = {}
-    # The following line is repeated due to list exhaustion
+    # The following line is repeated due to previous iterator exhaustion
     fasta_parsed = SeqIO.parse(glob.glob(args.fasta_in)[0], "fasta")
     for seq_record in fasta_parsed:
         f_seq_str = str(seq_record.seq)
-        print(f_seq_str)
         accession = seq_record.id
         f_positions, r_positions = group_positions(f_seq_str, args.base, args.max_interruption, args.window_size,
                                                    args.tolerance, args.min_len)
