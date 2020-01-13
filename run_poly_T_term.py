@@ -27,6 +27,7 @@ def main():
         args.min_len = args.window_size
     print("Loading sequence file...")
     fasta_parsed = SeqIO.parse(glob.glob(args.fasta_in)[0], "fasta")
+    # Handling multiple wig files
     f_wigs_parsed = {}
     r_wigs_parsed = {}
     for seq_record in fasta_parsed:
@@ -37,11 +38,11 @@ def main():
         x = wp(wig).parse()
         for key, value in x.items():
             if key in r_wigs_parsed.keys():
-                if value[value[1] > 0].empty:
-                    r_wigs_parsed[key] = pd.merge(how='outer', left=r_wigs_parsed[key], right=value, left_on=0,
-                                                  right_on=0).fillna(0.0)
                 if value[value[1] < 0].empty:
                     f_wigs_parsed[key] = pd.merge(how='outer', left=f_wigs_parsed[key], right=value, left_on=0,
+                                                  right_on=0).fillna(0.0)
+                if value[value[1] > 0].empty:
+                    r_wigs_parsed[key] = pd.merge(how='outer', left=r_wigs_parsed[key], right=value, left_on=0,
                                                   right_on=0).fillna(0.0)
     for accession in f_wigs_parsed.keys():
         f_wigs_parsed[accession][1] = f_wigs_parsed[accession].iloc[:, 1:-1].max(axis=1)
@@ -53,7 +54,7 @@ def main():
     accession = ""
     ret_list = []
     counters = {}
-    coverage_percent = 0.0
+    fasta_parsed = SeqIO.parse(glob.glob(args.fasta_in)[0], "fasta")
     for seq_record in fasta_parsed:
         f_seq_str = str(seq_record.seq)
         accession = seq_record.id
@@ -126,7 +127,7 @@ def main():
           f"{sum(v for k, v in counters.items() if 'pos_not_in_cov_' in k):,}\n"
           f"\t- Total number of positions in coverage: "
           f"{sum(v for k, v in counters.items() if 'wig_pos_count_' in k):,}")
-    print(f"Genome has coverage of: {'{0:.2f}'.format(coverage_percent)}%")
+
     print("Writing GFF file...")
     term_gff_str = ""
     count = 0
