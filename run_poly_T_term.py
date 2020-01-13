@@ -27,36 +27,16 @@ def main():
         args.min_len = args.window_size
     print("Loading sequence file...")
     fasta_parsed = SeqIO.parse(glob.glob(args.fasta_in)[0], "fasta")
-    # Handling multiple wig files
-    f_wigs_parsed = {}
-    r_wigs_parsed = {}
-    for seq_record in fasta_parsed:
-        f_wigs_parsed[seq_record.id] = pd.DataFrame(data=range(1, len(seq_record.seq), 1))
-        r_wigs_parsed[seq_record.id] = pd.DataFrame(data=range(1, len(seq_record.seq), 1))
     wig_files = glob.glob(args.wigs_in)
-    for wig in wig_files:
-        x = wp(wig).parse()
-        for key, value in x.items():
-            if key in r_wigs_parsed.keys():
-                if value[value[1] < 0].empty:
-                    f_wigs_parsed[key] = pd.merge(how='outer', left=f_wigs_parsed[key], right=value, left_on=0,
-                                                  right_on=0).fillna(0.0)
-                if value[value[1] > 0].empty:
-                    r_wigs_parsed[key] = pd.merge(how='outer', left=r_wigs_parsed[key], right=value, left_on=0,
-                                                  right_on=0).fillna(0.0)
-    for accession in f_wigs_parsed.keys():
-        f_wigs_parsed[accession][1] = f_wigs_parsed[accession].iloc[:, 1:-1].max(axis=1)
-        f_wigs_parsed[accession] = f_wigs_parsed[accession].iloc[:, [0, -1]]
-    for accession in r_wigs_parsed.keys():
-        r_wigs_parsed[accession][1] = r_wigs_parsed[accession].iloc[:, 1:-1].min(axis=1)
-        r_wigs_parsed[accession] = r_wigs_parsed[accession].iloc[:, [0, -1]]
-
+    f_wigs_parsed, r_wigs_parsed = merge_wigs_by_max(wig_files, fasta_parsed)
     accession = ""
     ret_list = []
     counters = {}
+    # The following line is repeated due to list exhaustion
     fasta_parsed = SeqIO.parse(glob.glob(args.fasta_in)[0], "fasta")
     for seq_record in fasta_parsed:
         f_seq_str = str(seq_record.seq)
+        print(f_seq_str)
         accession = seq_record.id
         f_positions, r_positions = group_positions(f_seq_str, args.base, args.max_interruption, args.window_size,
                                                    args.tolerance, args.min_len)
@@ -154,6 +134,34 @@ def main():
     outfile = open(args.gff_out, "w")
     outfile.write(f"###gff-version 3\n{term_gff_str}###")
     outfile.close()
+
+
+def merge_wigs_by_max(wig_files, fasta_parsed):
+    # Handling multiple wig files
+    f_wigs_parsed = {}
+    r_wigs_parsed = {}
+    for seq_record in fasta_parsed:
+        f_wigs_parsed[seq_record.id] = pd.DataFrame(data=range(1, len(seq_record.seq), 1))
+        r_wigs_parsed[seq_record.id] = pd.DataFrame(data=range(1, len(seq_record.seq), 1))
+
+    for wig in wig_files:
+        x = wp(wig).parse()
+        for key, value in x.items():
+            if key in r_wigs_parsed.keys():
+                if value[value[1] < 0].empty:
+                    f_wigs_parsed[key] = pd.merge(how='outer', left=f_wigs_parsed[key], right=value, left_on=0,
+                                                  right_on=0).fillna(0.0)
+                if value[value[1] > 0].empty:
+                    r_wigs_parsed[key] = pd.merge(how='outer', left=r_wigs_parsed[key], right=value, left_on=0,
+                                                  right_on=0).fillna(0.0)
+    for accession in f_wigs_parsed.keys():
+        f_wigs_parsed[accession][1] = f_wigs_parsed[accession].iloc[:, 1:-1].max(axis=1)
+        f_wigs_parsed[accession] = f_wigs_parsed[accession].iloc[:, [0, -1]]
+    for accession in r_wigs_parsed.keys():
+        r_wigs_parsed[accession][1] = r_wigs_parsed[accession].iloc[:, 1:-1].min(axis=1)
+        r_wigs_parsed[accession] = r_wigs_parsed[accession].iloc[:, [0, -1]]
+    return f_wigs_parsed, r_wigs_parsed
+
 
 def drop_invalid_signals(all_signals, window_size, tolerance):
     clean_signals = []
