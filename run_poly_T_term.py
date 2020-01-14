@@ -83,29 +83,30 @@ def main():
         counters[f'a_cov_drop_matches_{accession}'] = counters[f'f_cov_drop_matches_{accession}'] + \
                                                       counters[f'r_cov_drop_matches_{accession}']
     # OUTPUT
+
     print(f"Given parameters:\n"
-          f"\t- Pre-signal offset: {args.pre_signal_offset}\n"
-          f"\t- Post-signal offset: {args.post_signal_offset}\n"
-          f"\t- Minimum coverage: {args.min_coverage}\n"
-          f"\t- Maximum interruption: {args.max_interruption}\n"
-          f"\t- Window size: {args.window_size}\n"
-          f"\t- Tolerance: {args.tolerance}\n"
-          f"\t- Merge range: {args.merge_range}\n"
-          f"\t- Minimum poly-{args.base} length: {args.min_len}\n"
-          f"\t- Base: {args.base}")
+          f"\t- Pre-signal offset\t{args.pre_signal_offset}\n"
+          f"\t- Post-signal offset\t{args.post_signal_offset}\n"
+          f"\t- Minimum coverage\t{args.min_coverage}\n"
+          f"\t- Maximum interruption\t{args.max_interruption}\n"
+          f"\t- Window size\t{args.window_size}\n"
+          f"\t- Tolerance\t{args.tolerance}\n"
+          f"\t- Merge range\t{args.merge_range}\n"
+          f"\t- Minimum poly-{args.base} length\t{args.min_len}\n"
+          f"\t- Base\t{args.base}")
     print(f"Output:\n"
-          f"\t- Total coverage drop matches (sum): "
+          f"\t- Total coverage drop matches (sum)\t"
           f"{sum(v for k, v in counters.items() if 'a_cov_drop_matches_' in k):,}\n"
-          f"\t- Total coverage drop matches in forward: "
+          f"\t- Total coverage drop matches in forward\t"
           f"{sum(v for k, v in counters.items() if 'f_cov_drop_matches_' in k):,}\n"
-          f"\t- Total coverage drop matches in reverse: "
+          f"\t- Total coverage drop matches in reverse\t"
           f"{sum(v for k, v in counters.items() if 'r_cov_drop_matches_' in k):,}\n"
-          f"\t- Total Poly-{args.base} signals: {sum(v for k, v in counters.items() if 'poly_signals_count_' in k):,}")
-    print(f"\t- Poly-{args.base} signals that has no coverage: "
+          f"\t- Total Poly-{args.base} signals\t{sum(v for k, v in counters.items() if 'poly_signals_count_' in k):,}")
+    print(f"\t- Poly-{args.base} signals that has no coverage\t"
           f"{sum(v for k, v in counters.items() if 'pos_no_match_' in k):,}\n"
-          f"\t- Poly-{args.base} signals that found in the coverage but does not meet the matching parameters: "
+          f"\t- Poly-{args.base} signals that found in the coverage but does not meet the matching parameters\t"
           f"{sum(v for k, v in counters.items() if 'pos_not_in_cov_' in k):,}\n"
-          f"\t- Total number of positions in coverage: "
+          f"\t- Total number of positions in coverage\t"
           f"{sum(v for k, v in counters.items() if 'wig_pos_count_' in k):,}")
 
     print("Writing GFF file...")
