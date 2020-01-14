@@ -33,7 +33,7 @@ def main():
     accession = ""
     ret_list = []
     counters = {}
-    # The following line is repeated due to previous iterator exhaustion
+    # The following line is repeated due to the previous iterator exhaustion
     fasta_parsed = SeqIO.parse(glob.glob(args.fasta_in)[0], "fasta")
     for seq_record in fasta_parsed:
         f_seq_str = str(seq_record.seq)
@@ -122,8 +122,8 @@ def main():
         count += 1
         term_gff_str += \
             f"{row[0]}\t" + \
-            f"term_last_base_finder\t" + \
-            f"possible_term_end\t" + \
+            f"Poly_T_terminator_finder\t" + \
+            f"Poly_T_terminator\t" + \
             f"{row[1]}\t" + \
             f"{row[2]}\t" + \
             f".\t" + \
@@ -145,26 +145,28 @@ def merge_wigs_by_max(wig_files, fasta_parsed):
         r_wigs_parsed[seq_record.id] = pd.DataFrame(data=range(1, len(seq_record.seq), 1))
 
     for wig in wig_files:
-        x = wp(wig).parse()
-        for key, value in x.items():
-            if key in r_wigs_parsed.keys():
-                if value[value[1] < 0].empty:
-                    f_wigs_parsed[key] = pd.merge(how='outer', left=f_wigs_parsed[key], right=value, left_on=0,
-                                                  right_on=0).fillna(0.0)
-                if value[value[1] > 0].empty:
-                    r_wigs_parsed[key] = pd.merge(how='outer', left=r_wigs_parsed[key], right=value, left_on=0,
-                                                  right_on=0).fillna(0.0)
+        parsed_wig = wp(wig).parse()
+        for accession, coverage in parsed_wig.items():
+            if accession in r_wigs_parsed.keys():
+                if coverage[coverage[1] < 0].empty:
+                    f_wigs_parsed[accession] = pd.merge(how='outer', left=f_wigs_parsed[accession], right=coverage,
+                                                        left_on=0, right_on=0).fillna(0.0)
+                if coverage[coverage[1] > 0].empty:
+                    r_wigs_parsed[accession] = pd.merge(how='outer', left=r_wigs_parsed[accession], right=coverage,
+                                                        left_on=0, right_on=0).fillna(0.0)
     for accession in f_wigs_parsed.keys():
         f_wigs_parsed[accession][1] = f_wigs_parsed[accession].iloc[:, 1:-1].max(axis=1)
         f_wigs_parsed[accession] = f_wigs_parsed[accession].iloc[:, [0, -1]]
+        f_wigs_parsed[accession] = f_wigs_parsed[accession][f_wigs_parsed[accession][1] != 0.0]
     for accession in r_wigs_parsed.keys():
         r_wigs_parsed[accession][1] = r_wigs_parsed[accession].iloc[:, 1:-1].min(axis=1)
         r_wigs_parsed[accession] = r_wigs_parsed[accession].iloc[:, [0, -1]]
+        r_wigs_parsed[accession] = r_wigs_parsed[accession][r_wigs_parsed[accession][1] != 0.0]
     return f_wigs_parsed, r_wigs_parsed
 
 
 def drop_invalid_signals(all_signals, window_size, tolerance):
-    clean_signals = []
+    valid_signals = []
     for signal in all_signals:
         # Drop any signal shorter than the window
         if len(signal) < window_size - 1 - tolerance:
@@ -176,9 +178,9 @@ def drop_invalid_signals(all_signals, window_size, tolerance):
                 break
             # Check if the sliding window contains the required positions
             if 0 <= (signal[index + (window_size - 1)] - pos) - window_size <= tolerance:
-                clean_signals.append([signal[0], signal[-1]])
+                valid_signals.append([signal[0], signal[-1]])
                 break
-    return clean_signals
+    return valid_signals
 
 
 def group_positions(seq_str, base, max_interruption, window_size, tolerance, min_len=None):
