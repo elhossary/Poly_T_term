@@ -5,6 +5,7 @@ import pandas as pd
 from wiggle_parser import WiggleParser as wp
 import glob
 
+
 def main():
     # Params
     parser = argparse.ArgumentParser()
